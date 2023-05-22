@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use axum::{
-    extract,
+    extract::rejection::JsonRejection,
     response::Html,
     routing::{get, post},
     Json, Router,
@@ -31,9 +31,45 @@ struct Subscribe {
     name: String,
 }
 
+// fn deserialize_subscribe_json<T>(payload: Json<T>) -> Result<Json<T>, JsonRejection> {
+//     match payload {
+//         Ok(payload) => {
+//             payload
+//             // We got a valid JSON payload
+//         }
+//         Err(JsonRejection::MissingJsonContentType(_)) => {
+//             // Request didn't have `Content-Type: application/json`
+//             // header
+//         }
+//         Err(JsonRejection::JsonDataError(_)) => {
+//             // Couldn't deserialize the body into the target type
+//         }
+//         Err(JsonRejection::JsonSyntaxError(_)) => {
+//             // Syntax error in the body
+//         }
+//         Err(JsonRejection::BytesRejection(_)) => {
+//             // Failed to extract the request body
+//         }
+//         Err(_) => {
+//             // `JsonRejection` is marked `#[non_exhaustive]` so match must
+//             // include a catch-all case.
+//         }
+//     }
+// }
+
 async fn subscribe(
-    extract::Json(payload): extract::Json<Subscribe>,
+    payload: Result<Json<Subscribe>, JsonRejection>,
 ) -> (StatusCode, Json<serde_json::Value>) {
+    let Ok(payload) = payload else  {
+        // We got a invalid JSON payload
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "invalid json"
+            })),
+        );
+    };
+
     println!("{:?}", payload.email);
 
     if payload.name.is_empty() {
