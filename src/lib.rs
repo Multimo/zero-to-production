@@ -16,6 +16,7 @@ pub fn run() -> Router {
         .route("/", get(root_handler))
         .route("/health_check", get(health_check_handler))
         .route("/subscribe", post(subscribe))
+        .route("/subscribe", get(get_subscriptions))
 }
 
 async fn root_handler() -> Html<&'static str> {
@@ -56,6 +57,8 @@ struct Subscribe {
 //         }
 //     }
 // }
+
+async fn get_subscriptions() -> (StatusCode, Json<serde_json::Value>) {}
 
 async fn subscribe(
     payload: Result<Json<Subscribe>, JsonRejection>,
@@ -102,7 +105,7 @@ async fn subscribe(
 
     // store email and name in newletter db
 
-    //
+    // send back ok response
     (
         StatusCode::OK,
         Json(serde_json::json!({"status": "success"})),
