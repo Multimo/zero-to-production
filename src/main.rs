@@ -9,7 +9,7 @@ async fn main() -> std::io::Result<()> {
     let app = run();
 
     // run it
-    let addr = SocketAddr::from(([127, 0, 0, 1], configuration.application_post));
+    let addr = SocketAddr::from(([127, 0, 0, 1], configuration.application_port));
     println!("listening on {}", addr);
 
     axum::Server::bind(&addr)
