@@ -1,8 +1,9 @@
 use axum_test_helper::TestClient;
 use reqwest::StatusCode;
+use zero_to_production::startup::run;
 
 fn spawn_app() -> TestClient {
-    let app = zero_to_production::run();
+    let app = run();
 
     TestClient::new(app)
 }

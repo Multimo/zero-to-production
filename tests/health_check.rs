@@ -1,9 +1,10 @@
 use std::net::{SocketAddr, TcpListener};
 
 use axum::Server;
+use zero_to_production::startup::run;
 
 async fn async_spawn_app() -> SocketAddr {
-    let app = zero_to_production::run();
+    let app = run();
 
     let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
     let addr: std::net::SocketAddr = listener.local_addr().unwrap();
