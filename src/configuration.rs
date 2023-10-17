@@ -1,5 +1,5 @@
 use config::ConfigError;
-
+use sqlx::{Connection, PgConnection};
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
@@ -33,4 +33,12 @@ impl DatabaseSettings {
             self.username, self.password, self.host, self.port, self.database_name
         )
     }
+}
+
+pub async fn connect_to_db() -> PgConnection {
+    let config = get_configuration().expect("Failed to read configuration");
+
+    PgConnection::connect(&config.database.connection_string())
+        .await
+        .expect("cannot connect to db")
 }

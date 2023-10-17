@@ -4,6 +4,9 @@ use axum::{extract::rejection::JsonRejection, Json};
 use email_address::*;
 use reqwest::StatusCode;
 use serde::Deserialize;
+use sqlx::{Connection, PgConnection};
+
+use crate::configuration::get_configuration;
 
 #[derive(Deserialize)]
 pub struct Subscribe {
@@ -76,7 +79,7 @@ pub async fn subscribe(
         );
     }
 
-    let _response = match EmailAddress::from_str(&payload.email) {
+    let _response: EmailAddress = match EmailAddress::from_str(&payload.email) {
         Ok(email) => email,
         Err(_err) => {
             return (

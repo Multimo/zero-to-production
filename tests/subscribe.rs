@@ -1,16 +1,19 @@
 use axum_test_helper::TestClient;
 use reqwest::StatusCode;
-use zero_to_production::startup::run;
 
-fn spawn_app() -> TestClient {
-    let app = run();
+use sqlx::PgConnection;
+use zero_to_production::{configuration::connect_to_db, startup::run};
+
+fn spawn_app(connection: PgConnection) -> TestClient {
+    let app = run(connection);
 
     TestClient::new(app)
 }
 
 #[tokio::test]
 async fn subscribe_happy_path() {
-    let client = spawn_app();
+    let connection = connect_to_db().await;
+    let client = spawn_app(connection);
 
     let response = client
         .post("/subscribe")
@@ -25,11 +28,21 @@ async fn subscribe_happy_path() {
     assert!(response.status().is_success());
     let test_response = response.text().await;
     assert_eq!("{\"status\":\"success\"}", test_response);
+
+    let mut connection = connect_to_db().await;
+    let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
+        .fetch_one(&mut connection)
+        .await
+        .expect("Failed to fetch saved subscriptions");
+
+    assert_eq!(saved.email, "fake@email.com");
+    assert_eq!(saved.name, "some name");
 }
 
 #[tokio::test]
 async fn subscribe_bad_json_400() {
-    let client = spawn_app();
+    let connection = connect_to_db().await;
+    let client = spawn_app(connection);
 
     let response = client
         .post("/subscribe")
@@ -47,7 +60,8 @@ async fn subscribe_bad_json_400() {
 
 #[tokio::test]
 async fn subscribe_bad_json_400_empty_name() {
-    let client = spawn_app();
+    let connection = connect_to_db().await;
+    let client = spawn_app(connection);
 
     let response = client
         .post("/subscribe")
@@ -65,7 +79,8 @@ async fn subscribe_bad_json_400_empty_name() {
 
 #[tokio::test]
 async fn subscribe_bad_json_400_missing_name() {
-    let client = spawn_app();
+    let connection = connect_to_db().await;
+    let client = spawn_app(connection);
 
     let response = client
         .post("/subscribe")
@@ -75,7 +90,7 @@ async fn subscribe_bad_json_400_missing_name() {
         .send()
         .await;
 
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let test_response = response.text().await;
     assert_eq!("{\"error\":\"invalid json\"}", test_response);
-    // assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
