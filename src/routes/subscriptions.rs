@@ -52,8 +52,8 @@ pub async fn get_subscriptions() -> (StatusCode, Json<serde_json::Value>) {
 }
 
 pub async fn subscribe(
-    payload: Result<Json<Subscribe>, JsonRejection>,
     State(state): State<AppState>,
+    payload: Result<Json<Subscribe>, JsonRejection>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     let Ok(payload) = payload else  {
         // We got a invalid JSON payload
