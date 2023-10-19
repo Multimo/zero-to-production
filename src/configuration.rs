@@ -1,5 +1,5 @@
 use config::ConfigError;
-use sqlx::{Connection, PgConnection};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
@@ -35,10 +35,23 @@ impl DatabaseSettings {
     }
 }
 
-pub async fn connect_to_db() -> PgConnection {
+pub async fn connect_to_db() -> Pool<Postgres> {
     let config = get_configuration().expect("Failed to read configuration");
 
-    PgConnection::connect(&config.database.connection_string())
+    let pool = match PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&config.database.connection_string())
         .await
-        .expect("cannot connect to db")
+    {
+        Ok(pool) => {
+            println!("✅ Connection to the database is successful!");
+            pool
+        }
+        Err(err) => {
+            println!("🔥 Failed to connect to the database: {:?}", err);
+            std::process::exit(1);
+        }
+    };
+
+    pool
 }

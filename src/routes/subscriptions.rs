@@ -1,12 +1,15 @@
-use std::str::FromStr;
-
-use axum::{extract::rejection::JsonRejection, Json};
+use axum::{
+    extract::{rejection::JsonRejection, State},
+    Json,
+};
+use chrono::Utc;
 use email_address::*;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use sqlx::{Connection, PgConnection};
+use std::str::FromStr;
+use uuid::Uuid;
 
-use crate::configuration::get_configuration;
+use crate::startup::AppState;
 
 #[derive(Deserialize)]
 pub struct Subscribe {
@@ -50,6 +53,7 @@ pub async fn get_subscriptions() -> (StatusCode, Json<serde_json::Value>) {
 
 pub async fn subscribe(
     payload: Result<Json<Subscribe>, JsonRejection>,
+    State(state): State<AppState>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     let Ok(payload) = payload else  {
         // We got a invalid JSON payload
@@ -79,7 +83,7 @@ pub async fn subscribe(
         );
     }
 
-    let _response: EmailAddress = match EmailAddress::from_str(&payload.email) {
+    let email: EmailAddress = match EmailAddress::from_str(&payload.email) {
         Ok(email) => email,
         Err(_err) => {
             return (
@@ -92,6 +96,27 @@ pub async fn subscribe(
     };
 
     // store email and name in newsletter db
+    let query_result = sqlx::query!(
+        r#"
+            INSERT INTO subscriptions (id, email, name, subscribed_at)
+            VALUES ($1, $2, $3, $4)
+        "#,
+        Uuid::new_v4(),
+        email.as_str(),
+        payload.name,
+        Utc::now()
+    )
+    .execute(&state.db)
+    .await;
+
+    if query_result.is_err() {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "Insert into db failed"
+            })),
+        );
+    }
 
     // send back ok response
     (
