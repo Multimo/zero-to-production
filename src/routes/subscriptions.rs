@@ -110,6 +110,13 @@ pub async fn subscribe(
     .await;
 
     if query_result.is_err() {
+        match query_result.err() {
+            Some(s) => {
+                println!("{}", s)
+            }
+            None => {}
+        };
+
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({

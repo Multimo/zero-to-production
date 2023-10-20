@@ -7,6 +7,9 @@ start:
 test:
 	cargo test
 
+prepare:
+	cargo sqlx prepare
+
 # copied maybe usable
 
 # migrate-up:

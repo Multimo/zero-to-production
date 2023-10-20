@@ -38,7 +38,7 @@ impl DatabaseSettings {
 pub async fn connect_to_db() -> Pool<Postgres> {
     let config = get_configuration().expect("Failed to read configuration");
 
-    let pool = match PgPoolOptions::new()
+    match PgPoolOptions::new()
         .max_connections(10)
         .connect(&config.database.connection_string())
         .await
@@ -51,7 +51,5 @@ pub async fn connect_to_db() -> Pool<Postgres> {
             println!("🔥 Failed to connect to the database: {:?}", err);
             std::process::exit(1);
         }
-    };
-
-    pool
+    }
 }

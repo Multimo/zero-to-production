@@ -1,10 +1,10 @@
 use axum_test_helper::TestClient;
+use rand::Rng;
 use reqwest::StatusCode;
-
-use sqlx::PgConnection;
+use sqlx::{Pool, Postgres};
 use zero_to_production::{configuration::connect_to_db, startup::run};
 
-fn spawn_app(connection: PgConnection) -> TestClient {
+fn spawn_app(connection: Pool<Postgres>) -> TestClient {
     let app = run(connection);
 
     TestClient::new(app)
@@ -12,29 +12,33 @@ fn spawn_app(connection: PgConnection) -> TestClient {
 
 #[tokio::test]
 async fn subscribe_happy_path() {
+    let mut rng = rand::thread_rng();
     let connection = connect_to_db().await;
     let client = spawn_app(connection);
+
+    let random_number: u32 = rng.gen();
 
     let response = client
         .post("/subscribe")
         .header("content-type", "application/json")
         .json(&serde_json::json!({
-            "email": "fake@email.com",
+            "email": format!("fake+{}@email.com", random_number),
             "name": "some name"
         }))
         .send()
         .await;
 
-    assert!(response.status().is_success());
     let test_response = response.text().await;
     assert_eq!("{\"status\":\"success\"}", test_response);
 
-    let mut connection = connect_to_db().await;
+    let connection = connect_to_db().await;
+
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&mut connection)
+        .fetch_one(&connection)
         .await
         .expect("Failed to fetch saved subscriptions");
 
+    println!("found saved {:?}", saved);
     assert_eq!(saved.email, "fake@email.com");
     assert_eq!(saved.name, "some name");
 }
