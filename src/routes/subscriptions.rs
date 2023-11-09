@@ -109,21 +109,15 @@ pub async fn subscribe(
     .execute(&state.db)
     .await;
 
-    if query_result.is_err() {
-        match query_result.err() {
-            Some(s) => {
-                println!("{}", s)
-            }
-            None => {}
-        };
-
+    if let Some(err) = query_result.err() {
+        println!("{}", err);
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({
                 "error": "Insert into db failed"
             })),
         );
-    }
+    };
 
     // send back ok response
     (

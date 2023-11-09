@@ -1,28 +1,18 @@
-use axum_test_helper::TestClient;
-use rand::Rng;
 use reqwest::StatusCode;
-use sqlx::{Pool, Postgres};
-use zero_to_production::{configuration::connect_to_db, startup::run};
 
-fn spawn_app(connection: Pool<Postgres>) -> TestClient {
-    let app = run(connection);
-
-    TestClient::new(app)
-}
+use crate::helpers::async_spawn_app;
+mod helpers;
 
 #[tokio::test]
 async fn subscribe_happy_path() {
-    let mut rng = rand::thread_rng();
-    let connection = connect_to_db().await;
-    let client = spawn_app(connection);
+    let test_app = async_spawn_app().await;
 
-    let random_number: u32 = rng.gen();
-
-    let response = client
+    let response = test_app
+        .client
         .post("/subscribe")
         .header("content-type", "application/json")
         .json(&serde_json::json!({
-            "email": format!("fake+{}@email.com", random_number),
+            "email": "fake@email.com",
             "name": "some name"
         }))
         .send()
@@ -31,10 +21,8 @@ async fn subscribe_happy_path() {
     let test_response = response.text().await;
     assert_eq!("{\"status\":\"success\"}", test_response);
 
-    let connection = connect_to_db().await;
-
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&connection)
+        .fetch_one(&test_app.db_pool)
         .await
         .expect("Failed to fetch saved subscriptions");
 
@@ -45,10 +33,10 @@ async fn subscribe_happy_path() {
 
 #[tokio::test]
 async fn subscribe_bad_json_400() {
-    let connection = connect_to_db().await;
-    let client = spawn_app(connection);
+    let test_app = async_spawn_app().await;
 
-    let response = client
+    let response = test_app
+        .client
         .post("/subscribe")
         .json(&serde_json::json!({
             "email": "fakeemail.com",
@@ -64,10 +52,10 @@ async fn subscribe_bad_json_400() {
 
 #[tokio::test]
 async fn subscribe_bad_json_400_empty_name() {
-    let connection = connect_to_db().await;
-    let client = spawn_app(connection);
+    let test_app = async_spawn_app().await;
 
-    let response = client
+    let response = test_app
+        .client
         .post("/subscribe")
         .json(&serde_json::json!({
             "email": "fakeemail.com",
@@ -83,10 +71,10 @@ async fn subscribe_bad_json_400_empty_name() {
 
 #[tokio::test]
 async fn subscribe_bad_json_400_missing_name() {
-    let connection = connect_to_db().await;
-    let client = spawn_app(connection);
+    let test_app = async_spawn_app().await;
 
-    let response = client
+    let response = test_app
+        .client
         .post("/subscribe")
         .json(&serde_json::json!({
             "email": "fakeemail.com",
