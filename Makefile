@@ -2,7 +2,7 @@ up:
 	bash ./scripts/init_db.sh
 
 start:
-	cargo watch -q -c -w src/ -x run
+	RUST_LOG=tower_http=trace cargo watch -q -c -w src/ -x run
 
 test:
 	cargo test

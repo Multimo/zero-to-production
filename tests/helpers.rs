@@ -20,13 +20,6 @@ pub async fn async_spawn_app() -> TestApp {
 
     println!("async_spawn_app: Listening on {}", addr);
 
-    // tokio::spawn(async move {
-    //     let server = Server::from_tcp(listener)
-    //         .unwrap()
-    //         .serve(app.into_make_service());
-    //     server.await.expect("server error");
-    // });
-
     let test_client: TestClient = TestClient::new(app);
 
     TestApp {
